@@ -1,5 +1,7 @@
 import socket
+from select import select 
 from time  import ctime
+from sys import exit
 
 if __name__ == '__main__':
 
@@ -12,44 +14,36 @@ if __name__ == '__main__':
     chatServer.bind(ADDR)
     chatServer.listen(5)
 
-    #connections = []
-
-    exitFlag = False
-
-    print ('Chat server started')
-
-    while not exitFlag:
-        client, cAddr = chatServer.accept()
-        print ('Client connected from: ', cAddr)
-
-        while True:
-            msg = client.recv(bSize).decode()
-            if not msg:
-                print ('Disconnect client: ', cAddr)
-                client.close()
-                break
-            elif msg=='quit':
-                print ('Disconnect client: ', cAddr)
-                client.close()
-                break
-            else:
-                print ('Server on ' + ctime()+ ': ' + msg)
-
-#             msg = input('>')
-#             if not msg:
-#                 print ('Disconnect client: ', cAddr)
-#                 client.close()
-#             elif msg=='quit':
-#                 print ('Disconnect client: ', cAddr)
-#                 client.close()
-#                 exitFlag = True
-#                 break
-#             else:
-#                 msg = msg.encode()
-#                 client.send(msg)
-
-    chatServer.close()
-    print ('Chat server shut down')
+    connections = [chatServer]
+    
+    def broadcast(sender, data):
+        for sock in connections:
+            if sock != sender and sock != chatServer:
+                sock.send(data.encode())
             
 
+    print ('Chat server started on port ', PORT)
+
+    while True:
+        ready_to_read, ready_to_write, in_error = select(connections,[],[])
         
+        for sock in ready_to_read:
+            if sock == chatServer:
+                client, cAddr = chatServer.accept()
+                print ('Client connected from: ', cAddr)
+                connections.append(client)
+            else:
+                msg = sock.recv(bSize).decode()
+                if not msg or msg == '&quit':
+                    broadcast(sock, str(sock.getpeername()) + ' disconnected')
+                    print (str(sock.getpeername()) + ' disconnected')
+                    connections.remove(sock)
+                    sock.close()
+                elif msg=='&shutdown':
+                    for s in connections:
+                        s.close()
+                    print ('Shutting down')
+                    exit()
+                    
+                else:
+                    broadcast(sock, str(sock.getpeername()) + ' on ' + ctime() + ': ' + msg)
