@@ -35,18 +35,18 @@ if __name__ == '__main__':
             else:
                 print ('Server on ' + ctime()+ ': ' + msg)
 
-            msg = input('>')
-            if not msg:
-                print ('Disconnect client: ', cAddr)
-                client.close()
-            elif msg=='quit':
-                print ('Disconnect client: ', cAddr)
-                client.close()
-                exitFlag = True
-                break
-            else:
-                msg = msg.encode()
-                client.send(msg)
+#             msg = input('>')
+#             if not msg:
+#                 print ('Disconnect client: ', cAddr)
+#                 client.close()
+#             elif msg=='quit':
+#                 print ('Disconnect client: ', cAddr)
+#                 client.close()
+#                 exitFlag = True
+#                 break
+#             else:
+#                 msg = msg.encode()
+#                 client.send(msg)
 
     chatServer.close()
     print ('Chat server shut down')
