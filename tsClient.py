@@ -1,30 +1,19 @@
 import socket
-#from time  import ctime
 import sys
-import os
 from select import select
+from threading import Thread
+
+def msgRecv(ChangeSocket, size):
+    while True:
+        ready_to_read, ready_to_write, in_error = select([ChangeSocket], [],[])
+        for sock in ready_to_read:
+            msg = sock.recv(size)
+            if msg: print (msg.decode())
 
 if __name__ == '__main__':
-    #Подключение к удаленному серверу и создание локального сервера для многопоточности
+    #Проверка параметров запуска и подключение к удаленному серверу
     if len(sys.argv) == 3:
-      
-        tempLocalServ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tempLocalServ.bind(('localhost', 6000))
-        tempLocalServ.listen(1)
         
-        #Запуск в отдельном окне локального клиента для ввода сообщений
-        os.system('start python tsClient.py ioClient')
-        
-        while True:
-            
-            inputClientSocket, inputAddr = tempLocalServ.accept()
-                        
-            if inputClientSocket:
-                print ('input process accepted')
-                tempLocalServ.close()
-                break
-            
-            
         gHOST = sys.argv[1]
         gPORT = int(sys.argv[2])
         gADDR = (gHOST, gPORT)
@@ -32,30 +21,18 @@ if __name__ == '__main__':
         
         gChangeSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         gChangeSocket.connect(gADDR)
-        
+
         print ('Connected to: ', gADDR)
         
-        while True:
-            ready_to_read, ready_to_write, in_error = select([gChangeSocket, inputClientSocket], [],[])
-            for sock in ready_to_read:
-                if sock == gChangeSocket:
-                    rmsg = gChangeSocket.recv(bSize)
-                    if rmsg: print (rmsg.decode())
-                if sock == inputClientSocket:
-                    smsg = inputClientSocket.recv(bSize)
-                    if smsg:
-                        print (smsg.decode())
-                        gChangeSocket.send(smsg)
-            
-    elif (len(sys.argv) == 2 and sys.argv[1]=='ioClient'):
-        '''Если процесс запускался изнутри, он становится внутренним клиентом для ввода'''
-        print ('Input client started')
-        inputProcessSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        inputProcessSocket.connect(('localhost', 6000))
+        #Создание потока для приема и вывода сообщений
         
+        t = Thread(target=msgRecv, args=(gChangeSocket, bSize))
+        t.start()
+        
+
         while True:
             smsg = input('> ').encode()
-            inputProcessSocket.send(smsg)
+            gChangeSocket.send(smsg)
         
         
     else:
